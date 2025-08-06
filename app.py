@@ -2,33 +2,50 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-# Link público direto para CSV
-sheet_url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSEsiucgcv3oqHkQQk2hNtielDwa2o7YhbJczxC8JnjiSFA5APIaxE6FuD9_I8iRg/pub?output=csv"
+st.set_page_config(page_title="Dashboard Ágora", layout="wide")
 
-# Carregar os dados
-modalidades = pd.read_csv(sheet_url)
+st.title("📊 Dashboard Sebrae - Ágora Pesquisas")
 
-# Se necessário renomear colunas
-modalidades.columns = ["Modalidade", "Previsto", "Utilizado"]
+# ======= 🔗 Link direto do Google Sheets publicado =======
+url_publica = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSEsiucgcv3oqHkQQk2hNtielDwa2o7YhbJczxC8JnjiSFA5APIaxE6FuD9_I8iRg/pub?output=csv"
 
-# KPIs
-valor_faturar = modalidades["Previsto"].sum()
-valor_pago = modalidades["Utilizado"].sum()  # ou outra lógica
-total_previsto = modalidades["Previsto"].sum()
-total_utilizado = modalidades["Utilizado"].sum()
-percentual_execucao = total_utilizado / total_previsto * 100
+# ======= 📥 Carregamento do CSV =======
+try:
+    modalidades = pd.read_csv(url_publica)
 
-st.title("📊 Dashboard Ágora Pesquisas – Projeto Sebrae SP 2025")
-col1, col2, col3, col4 = st.columns(4)
-col1.metric("💰 Valor a Faturar", f"R$ {valor_faturar:,.2f}")
-col2.metric("✅ Valor Pago", f"R$ {valor_pago:,.2f}")
-col3.metric("📦 Utilizado", f"{total_utilizado} itens")
-col4.metric("📈 Execução", f"{percentual_execucao:.1f} %")
+    # Debug visual (opcional)
+    # st.write("Colunas carregadas:", modalidades.columns)
+    # st.dataframe(modalidades.head())
 
-st.subheader("📌 Utilização por Modalidade")
-fig = px.bar(modalidades, x="Modalidade", y=["Previsto", "Utilizado"],
-             barmode="group", height=400, color_discrete_sequence=px.colors.qualitative.Set2)
-st.plotly_chart(fig)
+    # Pega só as 3 primeiras colunas e renomeia
+    modalidades = modalidades.iloc[:, :3]
+    modalidades.columns = ["Modalidade", "Previsto", "Utilizado"]
 
-st.subheader("📋 Detalhamento")
-st.dataframe(modalidades)
+    # ======= 🔁 Mapeamento dos nomes reais =======
+    nomes_corretos = {
+        "Modalidade 1": "Profundidade",
+        "Modalidade 2": "Whatsapp",
+        "Modalidade 3": "Telefone - voz",
+        "Modalidade 4": "Omini - digital",
+        "Modalidade 5": "Discussão de Grupo",
+        "Modalidade 6": "Face a face 5’",
+        "Modalidade 7": "Face a face 20’"
+    }
+
+    modalidades["Modalidade"] = modalidades["Modalidade"].replace(nomes_corretos)
+
+    # ======= 📊 Geração do gráfico =======
+    fig = px.bar(modalidades, 
+                 x="Modalidade", 
+                 y=["Previsto", "Utilizado"],
+                 barmode="group",
+                 title="Comparativo de Quantitativos por Modalidade")
+
+    st.plotly_chart(fig, use_container_width=True)
+
+    # ======= 📋 Tabela abaixo do gráfico =======
+    st.subheader("📋 Tabela de Dados")
+    st.dataframe(modalidades, use_container_width=True)
+
+except Exception as e:
+    st.error(f"Erro ao carregar os dados: {e}")
